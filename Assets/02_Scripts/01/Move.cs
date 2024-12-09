@@ -4,51 +4,60 @@ using UnityEngine;
 
 public class Move : MonoBehaviour
 {
-    private float speed = 5f;
-    public LayerMask mask;
-    private Vector3 destPos;
+    private float moveSpeed = 6f;
 
     void Update()
     {
-        if(Input.GetKey(KeyCode.W))
+        // 키 방향 설정
+        Vector3 moveDir = Vector3.zero;
+
+        if (Input.GetKey(KeyCode.W))
         {
-            transform.Translate(Vector3.forward * speed * Time.deltaTime);
+            moveDir += Vector3.forward;
         }
 
-        if(Input.GetKey(KeyCode.S))
+        if (Input.GetKey(KeyCode.S))
         {
-            transform.Translate(Vector3.back * speed * Time.deltaTime);
+            moveDir += Vector3.back;
         }
 
-        if(Input.GetKey(KeyCode.A))
+        if (Input.GetKey(KeyCode.A))
         {
-            transform.Translate(Vector3.left * speed * Time.deltaTime);
+            moveDir += Vector3.left;
         }
 
-        if(Input.GetKey(KeyCode.D))
+        if (Input.GetKey(KeyCode.D))
         {
-            transform.Translate(Vector3.right * speed * Time.deltaTime);
+            moveDir += Vector3.right;
         }
 
-        RaycastHit hit;
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        Debug.DrawRay(Camera.main.transform.position, ray.direction * 100.0f, Color.red, 1.0f);
-        if(Physics.Raycast(ray, out hit,100f,mask)) 
+        // 이동
+        if (moveDir != Vector3.zero)
         {
-            destPos = hit.point;
+            moveDir.Normalize();
+            transform.Translate(moveDir * moveSpeed * Time.deltaTime);
         }
 
-        Vector3 dir = destPos - transform.position;
-        dir.y = 0;
-        dir = dir.normalized;
+        // 마우스 위치를 월드 좌표로 변환
+        Vector3 mousePosition = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, Camera.main.transform.position.y));
 
-        // 현재 회전과 목표 회전 각도의 차이를 확인
-        float angle = Vector3.Angle(transform.forward, dir);
+        // 현재 위치에서 마우스 위치를 향하는 방향 벡터 계산
+        Vector3 rotateDir = mousePosition - transform.position;
 
-        // 일정 각도 이상 차이가 날 때만 회전
-        if (angle > 0.1f)
+        // y축 회전만 필요하므로 y값은 0으로 설정
+        rotateDir.y = 0;
+
+        // 방향 정규화
+        rotateDir = rotateDir.normalized;
+        float mouseAngle = Vector3.Angle(transform.forward, rotateDir);
+
+        // 방향이 있을 때만 회전 (magnitude가 0이면 회전 X)
+        if (rotateDir.magnitude > 3f || mouseAngle > 6f)
         {
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), 20 * Time.deltaTime);
+            // 각도가 클수록 회전 속도를 줄임
+            float rotationSpeed = Mathf.Lerp(10f, 3f, mouseAngle / 180f);
+
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(rotateDir), rotationSpeed * Time.deltaTime);
         }
     }
 }
